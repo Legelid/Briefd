@@ -1,58 +1,240 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Briefd
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+**Broadcast Ready, Intelligently Edited, Fresh Daily**
 
-## About Laravel
+An AI-powered community digest tool that aggregates content from RSS feeds and community platforms, summarises it with Claude AI, and delivers polished email digests to your subscribers.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## What is Briefd?
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Briefd is a SaaS application for creators, community managers, and publishers who want to keep their audience informed without spending hours curating content manually. Connect your content sources — RSS feeds, subreddits, or other feeds — and Briefd fetches the latest posts on a schedule, summarises them into readable 2-3 sentence briefs using the Claude AI API, and sends a formatted digest email to your subscriber list.
 
-## Learning Laravel
+Each workspace in Briefd represents a distinct newsletter or community. A workspace has its own sources, subscriber list, and digest history. Users can manage multiple workspaces, generate digests on demand, preview them before sending, and track delivery status — all from a clean dark-themed dashboard.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+Briefd is designed to respect content sources. It reads publicly available content for the purpose of summarisation and attribution, always linking back to the original source. It does not interact with, modify, or re-post content on any platform.
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+## Key Features
 
-## Agentic Development
+- **Authentication** — Email/password registration and Google OAuth sign-in
+- **Workspaces** — Isolated environments per newsletter or community, each with their own sources, subscribers, and digests
+- **RSS Sources** — Connect any RSS feed; sources are fetched hourly and stored for digest generation
+- **AI Digest Generation** — Claude AI summarises each article into 2-3 sentences with a link back to the original; digests are generated as background jobs to avoid timeouts
+- **Subscriber Management** — Add and manage email subscribers per workspace
+- **Email Delivery** — Send digests to all subscribers via Resend with a clean, branded HTML email template
+- **Digest Preview** — Preview the full formatted digest in the dashboard before sending
+- **Background Processing** — Digest generation runs in the queue so the UI stays responsive; the page polls and updates automatically when ready
+- **Free Tier Limits** — Free plan supports 1 workspace and up to 50 subscribers
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Laravel 13 |
+| Frontend components | Livewire 4.2 |
+| JS interactivity | Alpine.js (bundled via Livewire) |
+| Styling | Tailwind CSS 3 |
+| Database | MySQL / MariaDB |
+| Queue | Laravel database queue |
+| AI summarisation | Anthropic Claude API (`claude-sonnet-4-6`) |
+| Email delivery | Resend |
+| OAuth | Laravel Socialite (Google) |
+| Local dev | Laravel Herd |
+
+---
+
+## How It Works
+
+1. **Connect a source** — Add an RSS feed URL (or subreddit, see below) to your workspace
+2. **Sources are fetched** — The `FetchRssSources` job runs hourly, pulling the latest items and storing titles, URLs, and descriptions
+3. **Generate a digest** — Click "New Digest" in the dashboard; Briefd creates a draft and dispatches a background job
+4. **Claude summarises** — The `GenerateDigest` job sends the 10 most recent items to the Claude API, which writes a 2-3 sentence summary for each with a "Read more" link
+5. **Preview and send** — Review the formatted digest in the dashboard, then click "Send Digest" to deliver it to all subscribers via Resend
+6. **Subscribers receive it** — Each subscriber gets a clean branded HTML email with all the summaries and links back to original sources
+
+---
+
+## API Integrations
+
+### Anthropic Claude API
+
+Used exclusively for AI summarisation during digest generation. Briefd sends article titles, URLs, and descriptions (from RSS `<description>` fields) to the Claude API and receives back a formatted HTML digest. No content is stored by Anthropic beyond what is necessary to fulfill the API request.
+
+- **Endpoint:** `POST https://api.anthropic.com/v1/messages`
+- **Model:** `claude-sonnet-4-6`
+- **Purpose:** Summarise article content into 2-3 sentence digests
+
+### Resend
+
+Used to deliver digest emails to subscribers. Briefd uses Laravel's mail system with Resend as the transport driver.
+
+- **Purpose:** Transactional email delivery of digest newsletters
+- **Trigger:** Initiated manually by the workspace owner from the digest preview page
+
+### Google OAuth
+
+Used as an optional sign-in method via Laravel Socialite. Briefd requests only the basic profile and email scopes.
+
+- **Scopes:** `openid`, `email`, `profile`
+- **Purpose:** Streamlined account creation and sign-in
+
+### Reddit API
+
+See full details in the dedicated section below.
+
+---
+
+## Reddit API Usage
+
+Briefd integrates with the Reddit API to allow users to include subreddit content in their digest newsletters.
+
+### What Briefd does with Reddit
+
+- Fetches the **top or new posts** from user-specified subreddits on a scheduled basis (hourly)
+- Reads post **titles, URLs, and selftext content** to include in digest summaries
+- Passes this content to the Claude AI API for summarisation
+- Includes the summarised content in email digests sent to the workspace's own subscribers, **always linking back to the original Reddit post**
+
+### What Briefd does NOT do
+
+- Does **not** post, submit, or create any content on Reddit
+- Does **not** vote (upvote or downvote) on any content
+- Does **not** comment on any posts or threads
+- Does **not** send private messages or interact with any Reddit users
+- Does **not** access any private subreddits or non-public content
+- Does **not** scrape or store Reddit content beyond what is needed for digest generation
+- Does **not** display Reddit content publicly — digests are sent only to the workspace's own opted-in subscribers
+
+### Access level required
+
+Briefd requires **read-only access** to the Reddit API. Specifically:
+
+- `read` — to fetch posts from public subreddits
+
+No write scopes are requested or used at any point in the application.
+
+### User context
+
+Briefd is used by newsletter creators and community managers who want to curate Reddit content for their own subscriber audiences. For example, a developer advocacy team might pull top posts from a relevant programming subreddit to include in their weekly developer newsletter. All Reddit content included in digests is attributed with the original post URL, directing readers back to Reddit.
+
+---
+
+## Local Development Setup
+
+### Requirements
+
+- PHP 8.3+
+- Composer
+- Node.js 20+
+- MySQL or MariaDB
+- [Laravel Herd](https://herd.laravel.com) (recommended) or Laravel Valet
+
+### Installation
 
 ```bash
-composer require laravel/boost --dev
+# Clone the repository
+git clone https://github.com/your-org/briefd.git
+cd briefd
 
-php artisan boost:install
+# Install PHP dependencies
+composer install
+
+# Install Node dependencies
+npm install
+
+# Copy environment file
+cp .env.example .env
+
+# Generate application key
+php artisan key:generate
+
+# Configure your .env (see Environment Variables below)
+
+# Run migrations
+php artisan migrate
+
+# Build frontend assets
+npm run build
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+### Running locally
 
-## Contributing
+Open three terminal tabs:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+# Tab 1 — Vite dev server (hot reload)
+npm run dev
 
-## Code of Conduct
+# Tab 2 — Queue worker (required for digest generation)
+php artisan queue:work
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+# Tab 3 — Scheduler (optional for local testing)
+php artisan schedule:work
+```
 
-## Security Vulnerabilities
+If using Laravel Herd, the site will be available at `http://briefd.test`.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Manually triggering an RSS fetch
+
+```bash
+php artisan tinker
+>>> dispatch_sync(new \App\Jobs\FetchRssSources());
+```
+
+---
+
+## Environment Variables
+
+Copy `.env.example` to `.env` and fill in the following:
+
+```env
+# Application
+APP_NAME=Briefd
+APP_ENV=local
+APP_KEY=
+APP_DEBUG=true
+APP_URL=http://briefd.test
+
+# Database
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=briefd
+DB_USERNAME=root
+DB_PASSWORD=
+
+# Queue — use 'database' for local dev
+QUEUE_CONNECTION=database
+
+# Mail / Resend
+MAIL_MAILER=resend
+MAIL_FROM_ADDRESS=hello@yourdomain.com
+MAIL_FROM_NAME=Briefd
+RESEND_API_KEY=
+
+# Anthropic Claude API
+ANTHROPIC_API_KEY=
+
+# Google OAuth
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URI=http://briefd.test/auth/google/callback
+
+# Reddit OAuth
+REDDIT_CLIENT_ID=
+REDDIT_CLIENT_SECRET=
+REDDIT_REDIRECT_URI=http://briefd.test/auth/reddit/callback
+REDDIT_USER_AGENT="web:briefd:v1.0 (by /u/yourusername)"
+```
+
+> **Local email testing:** Set `MAIL_MAILER=log` to write emails to `storage/logs/laravel.log` instead of sending via Resend. Resend requires a verified sending domain for live delivery.
+
+---
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+MIT License. Copyright (c) 2026 Briefd.
