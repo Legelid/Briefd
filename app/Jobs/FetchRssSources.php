@@ -36,6 +36,17 @@ class FetchRssSources implements ShouldQueue
 
                     if (! $url) continue;
 
+                    // Capture description from <description> or <content:encoded>
+                    $description = (string) ($item->description ?? '');
+                    if (empty($description)) {
+                        $namespaces = $item->getNamespaces(true);
+                        if (isset($namespaces['content'])) {
+                            $content = $item->children($namespaces['content']);
+                            $description = (string) ($content->encoded ?? '');
+                        }
+                    }
+                    $summary = mb_substr(trim(strip_tags($description)), 0, 600) ?: null;
+
                     $pubDate = null;
                     if (! empty($item->pubDate)) {
                         try {
@@ -45,7 +56,7 @@ class FetchRssSources implements ShouldQueue
 
                     SourceItem::updateOrCreate(
                         ['source_id' => $source->id, 'url' => $url],
-                        ['title' => $title, 'published_at' => $pubDate]
+                        ['title' => $title, 'summary' => $summary, 'published_at' => $pubDate]
                     );
                 }
 

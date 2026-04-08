@@ -2,40 +2,24 @@
 
 namespace App\Livewire\Digests;
 
-use App\Models\Digest;
-use App\Services\ClaudeService;
+use App\Jobs\GenerateDigest;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
 class DigestList extends Component
 {
-    public bool $generating = false;
     public ?int $confirmDeleteId = null;
 
     public function generateDigest(): void
     {
-        $this->generating = true;
-
         $workspace = Auth::user()->currentWorkspace();
 
         $digest = $workspace->digests()->create([
             'title' => 'Digest — ' . now()->format('M j, Y'),
-            'status' => 'draft',
+            'status' => 'generating',
         ]);
 
-        $items = \App\Models\SourceItem::whereIn(
-            'source_id',
-            $workspace->sources()->pluck('id')
-        )->latest('published_at')->limit(20)->get();
-
-        try {
-            $content = app(ClaudeService::class)->generateDigest($items);
-            $digest->update(['content' => $content]);
-        } catch (\Throwable $e) {
-            $digest->update(['content' => '<p>Failed to generate digest. Please try again.</p>']);
-        }
-
-        $this->generating = false;
+        GenerateDigest::dispatch($digest);
 
         $this->redirect(route('digests.preview', $digest), navigate: true);
     }
@@ -43,6 +27,11 @@ class DigestList extends Component
     public function confirmDelete(int $id): void
     {
         $this->confirmDeleteId = $id;
+    }
+
+    public function cancelDelete(): void
+    {
+        $this->confirmDeleteId = null;
     }
 
     public function delete(): void
@@ -55,8 +44,11 @@ class DigestList extends Component
     public function render()
     {
         $workspace = Auth::user()->currentWorkspace();
+        $digests = $workspace ? $workspace->digests()->latest()->get() : collect();
+
         return view('livewire.digests.digest-list', [
-            'digests' => $workspace ? $workspace->digests()->latest()->get() : collect(),
+            'digests' => $digests,
+            'hasGenerating' => $digests->contains('status', 'generating'),
         ])->layout('layouts.app', ['title' => 'Digests']);
     }
 }

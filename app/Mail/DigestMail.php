@@ -30,6 +30,9 @@ class DigestMail extends Mailable
     {
         return new Content(
             view: 'emails.digest',
+            with: [
+                'unsubscribe_url' => route('unsubscribe', $this->subscriber->unsubscribe_token),
+            ],
         );
     }
 }

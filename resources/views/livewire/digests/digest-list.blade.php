@@ -1,4 +1,4 @@
-<div>
+<div @if($hasGenerating) wire:poll.3s @endif>
     <div class="flex items-center justify-between mb-6">
         <div>
             <h2 class="text-lg font-semibold text-white">Digests</h2>
@@ -13,7 +13,7 @@
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Generating...
+                Creating...
             </span>
         </button>
     </div>
@@ -31,19 +31,26 @@
                 </div>
                 @php
                     $badgeStyles = match($digest->status) {
-                        'sent' => 'background-color: #071a10; color: #22c55e;',
-                        'scheduled' => 'background-color: #071020; color: #60a5fa;',
-                        default => 'background-color: #1e1e2e; color: #6b6b8a;',
+                        'generating' => 'background-color: #1a1400; color: #ef9f27;',
+                        'sent'       => 'background-color: #071a10; color: #22c55e;',
+                        'scheduled'  => 'background-color: #071020; color: #60a5fa;',
+                        default      => 'background-color: #1e1e2e; color: #6b6b8a;',
                     };
                 @endphp
-                <span class="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0" style="{{ $badgeStyles }}">
+                <span class="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 flex items-center gap-1" style="{{ $badgeStyles }}">
+                    @if($digest->status === 'generating')
+                        <svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    @endif
                     {{ ucfirst($digest->status) }}
                 </span>
                 <a href="{{ route('digests.preview', $digest) }}" class="text-xs flex-shrink-0" style="color: #ff6b2b;">Preview</a>
                 @if($confirmDeleteId === $digest->id)
                     <div class="flex items-center gap-2">
                         <button wire:click="delete" class="text-xs px-2 py-1 rounded" style="background-color: #e24b4a; color: white;">Delete</button>
-                        <button wire:click="$set('confirmDeleteId', null)" class="text-xs px-2 py-1 rounded border" style="border-color: #1e1e2e; color: #6b6b8a;">Cancel</button>
+                        <button wire:click="cancelDelete" class="text-xs px-2 py-1 rounded border" style="border-color: #1e1e2e; color: #6b6b8a;">Cancel</button>
                     </div>
                 @else
                     <button wire:click="confirmDelete({{ $digest->id }})" class="text-xs flex-shrink-0" style="color: #6b6b8a;">Delete</button>

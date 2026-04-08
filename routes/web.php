@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\Auth\DiscordAuthController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\UnsubscribeController;
 use App\Http\Controllers\WorkspaceController;
 use App\Livewire\Dashboard;
 use App\Livewire\Digests\DigestList;
@@ -20,6 +22,14 @@ Route::get('/', function () {
 // Google OAuth
 Route::get('/auth/google', [GoogleAuthController::class, 'redirect'])->name('auth.google');
 Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
+
+// Discord OAuth
+Route::get('/auth/discord', [DiscordAuthController::class, 'redirect'])->middleware('auth')->name('auth.discord');
+Route::get('/auth/discord/callback', [DiscordAuthController::class, 'callback'])->middleware('auth')->name('auth.discord.callback');
+
+// Unsubscribe (public)
+Route::get('/unsubscribe/{token}', [UnsubscribeController::class, 'show'])->name('unsubscribe');
+Route::post('/unsubscribe/{token}', [UnsubscribeController::class, 'confirm'])->name('unsubscribe.confirm');
 
 // Workspace switch
 Route::post('/workspace/switch', [WorkspaceController::class, 'switch'])->middleware('auth')->name('workspace.switch');

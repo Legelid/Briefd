@@ -1,5 +1,7 @@
 <?php
 
+use App\Jobs\AutoDispatchDigests;
+use App\Jobs\FetchDiscordSources;
 use App\Jobs\FetchRssSources;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -10,3 +12,5 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::job(new FetchRssSources)->hourly();
+Schedule::job(new FetchDiscordSources)->hourly();
+Schedule::job(new AutoDispatchDigests)->hourly();

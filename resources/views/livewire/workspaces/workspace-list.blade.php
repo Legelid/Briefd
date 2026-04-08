@@ -30,14 +30,14 @@
                 <div>
                     <label class="block text-xs font-medium mb-1" style="color: #6b6b8a;">Name</label>
                     <input wire:model="name" type="text" placeholder="My Workspace"
-                           class="w-full rounded-lg text-sm text-white border px-3 py-2 focus:outline-none focus:ring-1 focus:ring-accent"
+                           class="w-full rounded-lg text-sm text-white border px-3 py-2 focus:outline-none"
                            style="background-color: #0a0a0f; border-color: #1e1e2e;">
                     @error('name') <p class="text-xs mt-1" style="color: #e24b4a;">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="block text-xs font-medium mb-1" style="color: #6b6b8a;">Description (optional)</label>
                     <input wire:model="description" type="text"
-                           class="w-full rounded-lg text-sm text-white border px-3 py-2 focus:outline-none focus:ring-1 focus:ring-accent"
+                           class="w-full rounded-lg text-sm text-white border px-3 py-2 focus:outline-none"
                            style="background-color: #0a0a0f; border-color: #1e1e2e;">
                 </div>
             </div>
@@ -62,24 +62,97 @@
                         @if($workspace->description)
                             <p class="text-xs mt-1" style="color: #6b6b8a;">{{ $workspace->description }}</p>
                         @endif
-                        <div class="flex gap-4 mt-2">
+                        <div class="flex flex-wrap gap-4 mt-2">
                             <span class="text-xs" style="color: #6b6b8a;">{{ $workspace->sources_count }} sources</span>
                             <span class="text-xs" style="color: #6b6b8a;">{{ $workspace->subscribers_count }} subscribers</span>
                             <span class="text-xs" style="color: #6b6b8a;">{{ $workspace->digests_count }} digests</span>
+                            <span class="text-xs" style="color: #6b6b8a;">
+                                Schedule:
+                                @if($workspace->schedule_type === 'daily')
+                                    Daily at {{ $workspace->schedule_time }}
+                                @elseif($workspace->schedule_type === 'weekly')
+                                    Weekly on {{ ucfirst($workspace->schedule_day) }} at {{ $workspace->schedule_time }}
+                                @else
+                                    Manual
+                                @endif
+                            </span>
                         </div>
                     </div>
-                    @if($workspaces->count() > 1)
-                        @if($confirmDeleteId === $workspace->id)
-                            <div class="flex items-center gap-2">
-                                <span class="text-xs" style="color: #e24b4a;">Delete workspace?</span>
-                                <button wire:click="delete" class="text-xs px-2 py-1 rounded" style="background-color: #e24b4a; color: white;">Yes</button>
-                                <button wire:click="$set('confirmDeleteId',null)" class="text-xs px-2 py-1 rounded border" style="border-color: #1e1e2e; color: #6b6b8a;">No</button>
-                            </div>
-                        @else
-                            <button wire:click="confirmDelete({{ $workspace->id }})" class="text-xs transition-colors" style="color: #6b6b8a;">Delete</button>
+                    <div class="flex items-center gap-2 ml-4 flex-shrink-0">
+                        <button wire:click="editSchedule({{ $workspace->id }})"
+                                class="text-xs px-2 py-1 rounded border"
+                                style="border-color: #1e1e2e; color: #6b6b8a;">
+                            Schedule
+                        </button>
+                        @if($workspaces->count() > 1)
+                            @if($confirmDeleteId === $workspace->id)
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs" style="color: #e24b4a;">Delete?</span>
+                                    <button wire:click="delete" class="text-xs px-2 py-1 rounded" style="background-color: #e24b4a; color: white;">Yes</button>
+                                    <button wire:click="$set('confirmDeleteId',null)" class="text-xs px-2 py-1 rounded border" style="border-color: #1e1e2e; color: #6b6b8a;">No</button>
+                                </div>
+                            @else
+                                <button wire:click="confirmDelete({{ $workspace->id }})" class="text-xs transition-colors" style="color: #6b6b8a;">Delete</button>
+                            @endif
                         @endif
-                    @endif
+                    </div>
                 </div>
+
+                {{-- Schedule edit form --}}
+                @if($editScheduleId === $workspace->id)
+                    <div class="mt-4 pt-4 border-t" style="border-color: #1e1e2e;">
+                        <h4 class="text-xs font-semibold text-white mb-3">Edit Schedule</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium mb-1" style="color: #6b6b8a;">Frequency</label>
+                                <select wire:model.live="scheduleType"
+                                        class="w-full rounded-lg text-sm text-white border px-3 py-2 focus:outline-none"
+                                        style="background-color: #0a0a0f; border-color: #1e1e2e;">
+                                    <option value="manual">Manual</option>
+                                    <option value="daily">Daily</option>
+                                    <option value="weekly">Weekly</option>
+                                </select>
+                            </div>
+                            @if($scheduleType === 'weekly')
+                                <div>
+                                    <label class="block text-xs font-medium mb-1" style="color: #6b6b8a;">Day</label>
+                                    <select wire:model="scheduleDay"
+                                            class="w-full rounded-lg text-sm text-white border px-3 py-2 focus:outline-none"
+                                            style="background-color: #0a0a0f; border-color: #1e1e2e;">
+                                        <option value="monday">Monday</option>
+                                        <option value="tuesday">Tuesday</option>
+                                        <option value="wednesday">Wednesday</option>
+                                        <option value="thursday">Thursday</option>
+                                        <option value="friday">Friday</option>
+                                        <option value="saturday">Saturday</option>
+                                        <option value="sunday">Sunday</option>
+                                    </select>
+                                </div>
+                            @endif
+                            @if($scheduleType !== 'manual')
+                                <div>
+                                    <label class="block text-xs font-medium mb-1" style="color: #6b6b8a;">Time</label>
+                                    <input wire:model="scheduleTime" type="time"
+                                           class="w-full rounded-lg text-sm text-white border px-3 py-2 focus:outline-none"
+                                           style="background-color: #0a0a0f; border-color: #1e1e2e;">
+                                    @error('scheduleTime') <p class="text-xs mt-1" style="color: #e24b4a;">{{ $message }}</p> @enderror
+                                </div>
+                            @endif
+                        </div>
+                        <div class="flex gap-2 mt-3">
+                            <button wire:click="saveSchedule"
+                                    class="px-4 py-2 rounded-lg text-sm font-medium text-white"
+                                    style="background-color: #ff6b2b;">
+                                Save
+                            </button>
+                            <button wire:click="cancelSchedule"
+                                    class="px-4 py-2 rounded-lg text-sm font-medium border"
+                                    style="border-color: #1e1e2e; color: #6b6b8a;">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                @endif
             </div>
         @empty
             <p class="text-sm" style="color: #6b6b8a;">No workspaces yet.</p>

@@ -17,8 +17,19 @@
         </div>
     @endif
 
+    {{-- Next digest banner --}}
+    @if($this->nextDigest)
+        <div class="mb-6 flex items-center gap-3 px-4 py-3 rounded-lg border" style="background-color: #071020; border-color: #3b5cf6;">
+            <svg class="w-4 h-4 flex-shrink-0" style="color: #60a5fa;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span class="text-sm" style="color: #60a5fa;">Next digest: <strong>{{ $this->nextDigest }}</strong></span>
+            <a href="{{ route('workspaces') }}" class="ml-auto text-xs font-medium" style="color: #60a5fa;">Edit schedule →</a>
+        </div>
+    @endif
+
     {{-- Stats grid --}}
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         <div class="rounded-xl border p-5" style="background-color: #0f0f18; border-color: #1e1e2e;">
             <p class="text-xs font-medium uppercase tracking-wider mb-1" style="color: #6b6b8a;">Subscribers</p>
             <p class="text-2xl font-bold text-white">{{ $this->stats['subscribers'] }}</p>
@@ -30,6 +41,10 @@
         <div class="rounded-xl border p-5" style="background-color: #0f0f18; border-color: #1e1e2e;">
             <p class="text-xs font-medium uppercase tracking-wider mb-1" style="color: #6b6b8a;">Active Sources</p>
             <p class="text-2xl font-bold text-white">{{ $this->stats['active_sources'] }}</p>
+        </div>
+        <div class="rounded-xl border p-5" style="background-color: #0f0f18; border-color: #1e1e2e;">
+            <p class="text-xs font-medium uppercase tracking-wider mb-1" style="color: #6b6b8a;">Avg Open Rate</p>
+            <p class="text-2xl font-bold text-white">{{ $this->stats['avg_open_rate'] }}</p>
         </div>
     </div>
 
@@ -73,8 +88,15 @@
                     <div class="w-2 h-2 rounded-full flex-shrink-0"
                          style="background-color: {{ $source->status === 'healthy' ? '#ff6b2b' : '#ef9f27' }};"></div>
                     <div class="flex-1 min-w-0">
-                        <p class="text-sm text-white truncate">{{ $source->name }}</p>
-                        <p class="text-xs" style="color: #6b6b8a;">{{ $source->type }} · {{ $source->items_count }} items</p>
+                        <div class="flex items-center gap-2">
+                            <p class="text-sm text-white truncate">{{ $source->name }}</p>
+                            @if($source->type === 'discord')
+                                <span class="text-xs px-1.5 py-0.5 rounded font-semibold flex-shrink-0" style="background-color: #1a1033; color: #7c6ef7;">Discord</span>
+                            @else
+                                <span class="text-xs px-1.5 py-0.5 rounded font-semibold flex-shrink-0" style="background-color: #1f1008; color: #ff6b2b;">RSS</span>
+                            @endif
+                        </div>
+                        <p class="text-xs" style="color: #6b6b8a;">{{ $source->items_count }} items</p>
                     </div>
                 </div>
             @empty

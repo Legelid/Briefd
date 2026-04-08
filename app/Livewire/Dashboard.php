@@ -2,9 +2,6 @@
 
 namespace App\Livewire;
 
-use App\Models\Digest;
-use App\Models\Source;
-use App\Models\Subscriber;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -27,11 +24,14 @@ class Dashboard extends Component
     #[Computed]
     public function stats(): array
     {
-        if (! $this->workspace) return ['subscribers' => 0, 'digests_sent' => 0, 'active_sources' => 0];
+        if (! $this->workspace) {
+            return ['subscribers' => 0, 'digests_sent' => 0, 'active_sources' => 0, 'avg_open_rate' => 'N/A'];
+        }
         return [
-            'subscribers' => $this->workspace->subscribers()->count(),
-            'digests_sent' => $this->workspace->digests()->where('status', 'sent')->count(),
+            'subscribers'    => $this->workspace->subscribers()->count(),
+            'digests_sent'   => $this->workspace->digests()->where('status', 'sent')->count(),
             'active_sources' => $this->workspace->sources()->where('status', 'healthy')->count(),
+            'avg_open_rate'  => 'N/A',
         ];
     }
 
@@ -50,10 +50,12 @@ class Dashboard extends Component
     }
 
     #[Computed]
-    public function nextDigest()
+    public function nextDigest(): ?string
     {
         if (! $this->workspace) return null;
-        return $this->workspace->digests()->where('status', 'scheduled')->latest()->first();
+        $at = $this->workspace->next_digest_at;
+        if (! $at) return null;
+        return $at->format('l, M j \a\t g:ia');
     }
 
     #[Computed]
